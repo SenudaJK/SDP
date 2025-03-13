@@ -1,0 +1,226 @@
+CREATE DATABASE repair_shop;
+USE repair_shop;
+
+CREATE TABLE customers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    firstName VARCHAR(50) NOT NULL,
+    lastName VARCHAR(50) NOT NULL,
+    email VARCHAR(100) UNIQUE NOT NULL,
+    username VARCHAR(50) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL
+);
+
+CREATE TABLE telephones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    customer_id INT,
+    phone_number VARCHAR(20) NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+
+CREATE TABLE employees (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    firstName VARCHAR(50) NOT NULL,
+    lastName VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    dateOfBirth DATE NOT NULL,
+    role ENUM('technician', 'owner') NOT NULL
+);
+
+ALTER TABLE employees ADD COLUMN nic VARCHAR(12) NOT NULL;
+
+CREATE TABLE employee_telephones (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    employee_id INT NOT NULL,
+    phone_number VARCHAR(15) NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+drop table employee_telephones;
+
+CREATE TABLE products (
+    product_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(255) NOT NULL,
+    model VARCHAR(255),
+    model_number VARCHAR(255),
+    product_image VARCHAR(255)
+);
+
+CREATE TABLE Booking (
+    BookingID INT AUTO_INCREMENT PRIMARY KEY,
+    job_id INT NOT NULL,
+    customer_id INT NOT NULL,
+    Date DATE NOT NULL,
+    Time TIME NOT NULL,
+    FOREIGN KEY (job_id) REFERENCES jobs(job_id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+
+CREATE TABLE PendingBookings (
+    PendingBookingID INT PRIMARY KEY AUTO_INCREMENT,
+    CustomerID INT,
+    JobID INT,
+    Date DATE,
+    Time TIME,
+    Status ENUM('Pending', 'Approved') DEFAULT 'Pending',
+    FOREIGN KEY (CustomerID) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (JobID) REFERENCES jobs(job_id) ON DELETE CASCADE
+);
+
+CREATE TABLE Feedback (
+    Feedback_ID INT PRIMARY KEY AUTO_INCREMENT,
+    Job_ID INT UNIQUE,
+    feedback TEXT,
+    FOREIGN KEY (Job_ID) REFERENCES jobs(job_id) ON DELETE CASCADE
+);
+
+CREATE TABLE jobs (
+    job_id INT AUTO_INCREMENT PRIMARY KEY,
+    product_id INT,
+    customer_id INT,
+    repair_description TEXT,
+    repair_status ENUM('Pending', 'In Progress', 'Completed') DEFAULT 'Pending',
+    warranty_eligible BOOLEAN DEFAULT FALSE,
+    handover_date DATE,
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);
+
+CREATE TABLE PendingBookings (
+    PendingBookingID INT AUTO_INCREMENT PRIMARY KEY,
+    CustomerID INT NOT NULL,
+    JobID INT NOT NULL,
+    Date DATE NOT NULL,
+    Time TIME NOT NULL,
+    Status ENUM('Pending', 'Approved') DEFAULT 'Pending',
+    FOREIGN KEY (CustomerID) REFERENCES customers(id),
+    FOREIGN KEY (JobID) REFERENCES jobs(job_id)
+);
+
+CREATE TABLE Booking (
+    BookingID INT AUTO_INCREMENT PRIMARY KEY,
+    CustomerID INT NOT NULL,
+    JobID INT NOT NULL,
+    Date DATE NOT NULL,
+    Time TIME NOT NULL,
+    FOREIGN KEY (CustomerID) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (JobID) REFERENCES jobs(job_id) ON DELETE CASCADE
+);
+
+drop table Booking;
+
+-- Inventory Table
+CREATE TABLE Inventory (
+    Inventory_ID INT AUTO_INCREMENT PRIMARY KEY,
+    product_name VARCHAR(100),
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- InventoryBatch Table
+CREATE TABLE InventoryBatch (
+    Batch_No INT AUTO_INCREMENT PRIMARY KEY,
+    Inventory_ID INT,
+    Quantity INT NOT NULL,
+    Cost_Per_Item DECIMAL(10, 2) NOT NULL,
+    Total_Amount DECIMAL(15, 2) GENERATED ALWAYS AS (Quantity * Cost_Per_Item) STORED,
+    Purchase_Date DATE DEFAULT (CURRENT_DATE),
+    FOREIGN KEY (Inventory_ID) REFERENCES Inventory(Inventory_ID) ON DELETE CASCADE
+);
+
+-- JobUsedInventory Table
+CREATE TABLE JobUsedInventory (
+    Job_ID INT,
+    Inventory_ID INT,
+    Batch_No INT,
+    Quantity_Used INT NOT NULL,
+    Total_Amount DECIMAL(15, 2),
+    PRIMARY KEY (Job_ID, Inventory_ID, Batch_No),
+    FOREIGN KEY (Inventory_ID) REFERENCES Inventory(Inventory_ID) ON DELETE CASCADE,
+    FOREIGN KEY (Batch_No) REFERENCES InventoryBatch(Batch_No) ON DELETE CASCADE
+);
+
+CREATE TABLE Salary (
+    Salary_ID INT PRIMARY KEY AUTO_INCREMENT,
+    Employee_ID INT,
+    Payment_Date DATE,
+    Overtime_Pay DECIMAL(10,2),
+    Bonus DECIMAL(10,2),
+    Deductions DECIMAL(10,2),
+    Total_Salary DECIMAL(10,2),
+    FOREIGN KEY (Employee_ID) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+drop table Salary;
+
+CREATE TABLE PurchaseItems (
+    Purchase_ID INT AUTO_INCREMENT PRIMARY KEY,
+    Inventory_ID INT,
+    Batch_No INT,
+    Quantity INT NOT NULL,
+    Total_Amount DECIMAL(15, 2),
+    Purchase_Date DATE DEFAULT (CURRENT_DATE),
+    FOREIGN KEY (Inventory_ID) REFERENCES Inventory(Inventory_ID) ON DELETE CASCADE,
+    FOREIGN KEY (Batch_No) REFERENCES InventoryBatch(Batch_No) ON DELETE CASCADE
+);
+
+
+
+
+ALTER TABLE jobs ADD COLUMN status ENUM('Pending', 'In Progress', 'Approved') DEFAULT 'Pending';
+
+delete from JobUsedInventory WHERE Batch_No = '1';
+ALTER TABLE jobs;
+
+drop table PurchaseItems;
+drop table PendingBookings;
+ALTER TABLE employee_telephones;
+
+CREATE TABLE Invoice (
+    Invoice_Id INT AUTO_INCREMENT PRIMARY KEY,
+    Job_ID INT NOT NULL,
+    Customer_ID INT NOT NULL,
+    Owner_ID INT NOT NULL,
+    TotalCost_for_Parts DECIMAL(10, 2),
+    Advance_Amount DECIMAL(10, 2),
+    Labour_Cost DECIMAL(10, 2),
+    Total_Amount DECIMAL(10, 2),
+    warranty_eligible BOOLEAN DEFAULT FALSE,
+    Created_At DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (Job_ID) REFERENCES jobs(job_id) ON DELETE CASCADE,
+    FOREIGN KEY (Customer_ID) REFERENCES customers(id) ON DELETE CASCADE,
+    FOREIGN KEY (Owner_ID) REFERENCES employees(id) ON DELETE CASCADE
+);
+
+CREATE TABLE PurchaseItems (
+    Purchase_ID INT PRIMARY KEY,
+    Inventory_ID INT,
+    Batch_No VARCHAR(50),
+    Quantity INT,
+    Total_Amount DECIMAL(10, 2),
+    Purchase_Date DATE,
+    FOREIGN KEY (Inventory_ID) REFERENCES Inventory(Inventory_ID),
+    FOREIGN KEY (Batch_No) REFERENCES Batches(Batch_No)
+);
+
+
+ 
+ALTER TABLE Booking ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'Pending';
+ALTER TABLE Inventory ADD COLUMN Stock_Limit INT DEFAULT 0;
+
+SHOW DATABASES;
+show tables;
+select*FROM customers;
+select*FROM jobs;
+select*FROM employees;
+select*FROM products;
+select*FROM telephones;
+select*from employee_telephones;
+select*from PendingBookings;
+select*from Booking;
+select*from Inventory;
+select*from InventoryBatch;
+select*from JobUsedInventory;
+select*from Salary;
+select*from PurchaseItems;
+SELECT * FROM PendingBookings WHERE PendingBookingID = 2 AND Status = 'Pending';
